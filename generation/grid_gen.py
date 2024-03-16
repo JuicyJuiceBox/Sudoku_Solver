@@ -1,5 +1,6 @@
 import random
 
+
 class Sudoku:
     def __init__(self):
         self.columns = {
@@ -27,7 +28,6 @@ class Sudoku:
         self.grid_key = {
 
         }
-
 
         self.boxes = {
             'TL': [(1, 'A'), (1, 'B'), (1, 'C'),
@@ -63,14 +63,11 @@ class Sudoku:
 
         }
 
-
         self.fill_stack = []
 
+        self.unfilled = []
 
-        self.unfilled = [k for k in self.grid_key]
-
-
-    def hash_gen(self):
+    def hash_gen(self):  # Creates grid with coordinate keys and blank values
         row_x = self.rows.keys()
         col_y = self.columns.keys()
         cords = []
@@ -79,16 +76,16 @@ class Sudoku:
                 cords.append((x, y))
         for cord in cords:
             self.grid_key[cord] = 0
+            self.unfilled = cords
 
-    def mark_gen(self):
+    def mark_gen(self):  # Generates pencil marks of possible values for each space
         col_keys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
         possible_vals = {1: True, 2: True, 3: True, 4: True, 5: True, 6: True, 7: True, 8: True, 9: True}
-        for x in possible_vals:
+        for x in range(1, 10):
             for y in col_keys:
                 self.marks[(x, y)] = possible_vals
 
-
-    def mark_scrub(self, x, y):
+    def mark_scrub(self, x, y):  # Scrubs value from intersecting spaces' marks
         scrub = self.grid_key[(x, y)]
 
         for r in self.rows[x]:
@@ -106,26 +103,83 @@ class Sudoku:
             else:
                 continue
 
+    def remark(self, x, y, error):  # Returns marks to True for conflicting value in backtrack
+        scrub = error
 
-    def backtrack(self):
+        for r in self.rows[x]:
+            if not self.marks[r][scrub]:
+                self.marks[r][scrub] = True
+        for c in self.columns[y]:
+            if not self.marks[c][scrub]:
+                self.marks[c][scrub] = True
+        for box in self.boxes:
+            if (x, y) in self.boxes[box]:
+                for b in self.boxes[box]:
+                    if not self.marks[b][scrub]:
+                        self.marks[b][scrub] = True
+                break
+            else:
+                continue
+
+    def backtrack(self, error):  # Called in the find_error function when a blank space has no possible values in fill_space
+        last_space = self.fill_stack.pop()
+        space_value = self.grid_key[last_space]
+
+        self.unfilled.append(last_space)
+        self.remark(*last_space, error)
+        self.grid_key[last_space] = 0
+        if space_value == error:
+            return last_space
+        else:
+            self.backtrack(error)
+
+    def find_error(self, x, y):  # Finds conflicting values at space error discovered
+        seen_values = set()
+
+        for r in self.rows[x]:
+            if self.grid_key[r] in seen_values:
+                return self.backtrack(self.grid_key[r])
+            if self.grid_key[r] > 0:
+                seen_values.add(self.grid_key[r])
+
+            for c in self.columns[y]:
+                if self.grid_key[c] in seen_values:
+                    return self.backtrack(self.grid_key[c])
+                if self.grid_key[c] > 0:
+                    seen_values.add(self.grid_key[c])
+
+            for box in self.boxes:
+                if (x, y) in self.boxes[box]:
+                    for b in self.boxes[box]:
+                        if self.grid_key[b] in seen_values:
+                            return self.backtrack(self.grid_key[b])
+                        if self.grid_key[b] > 0:
+                            seen_values.add(self.grid_key[b])
+                    break
+
+            return None
 
 
+    def fill_space(self, space=None):  # Fills a single space in the grid, or calls backtrack
+        if space is None:
+            space = random.choice(self.unfilled)
+        choices = [i for i in range(1, 10) if self.marks[space][i]]
 
-    def fill_space(self):
-        space = random.choice(self.unfilled)
-
-        if any(i for i in self.marks[space].values()):
-            choices = [i for i in self.marks[space] if self.marks[space][i]]
+        if choices and self.unfilled:
             choice = random.choice(choices)
+            self.grid_key[space] = choice
             self.marks[space][choice] = False
             self.fill_stack.append(space)
             self.unfilled.remove(space)
             self.mark_scrub(*space)
         else:
-            pass #insert call to backtrace here
+            space_fix = self.find_error(*space)
 
+    def fill_grid(self): # Fills spaces one by one until grid is full
+        while len(self.fill_stack) < len(self.grid_key):
+            self.fill_space()
 
-    def print_grid(self):
-        for r in range(1,10):
+    def print_grid(self):  # Prints grid to console in readable format
+        for r in range(1, 10):
             line = [self.grid_key[xy] for xy in self.rows[r]]
             print(line)
