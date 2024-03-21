@@ -34,27 +34,27 @@ class Sudoku:
             'TL': [(1, 'A'), (1, 'B'), (1, 'C'),
                    (2, 'A'), (2, 'B'), (2, 'C'),
                    (3, 'A'), (3, 'B'), (3, 'C')],
-            'TC': [(1, 'D'), (1, 'E'), (1, 'F'),
-                   (2, 'D'), (2, 'E'), (2, 'F'),
-                   (3, 'D'), (3, 'E'), (3, 'F')],
-            'TR': [(1, 'G'), (1, 'H'), (1, 'I'),
-                   (2, 'G'), (2, 'H'), (2, 'I'),
-                   (3, 'G'), (3, 'H'), (3, 'I')],
             'CL': [(4, 'A'), (4, 'B'), (4, 'C'),
                    (5, 'A'), (5, 'B'), (5, 'C'),
                    (6, 'A'), (6, 'B'), (6, 'C')],
-            'CC': [(4, 'D'), (4, 'E'), (4, 'F'),
-                   (5, 'D'), (5, 'E'), (5, 'F'),
-                   (6, 'D'), (6, 'E'), (6, 'F')],
-            'CR': [(4, 'G'), (4, 'H'), (4, 'I'),
-                   (5, 'G'), (5, 'H'), (5, 'I'),
-                   (6, 'G'), (6, 'H'), (6, 'I')],
             'BL': [(7, 'A'), (7, 'B'), (7, 'C'),
                    (8, 'A'), (8, 'B'), (8, 'C'),
                    (9, 'A'), (9, 'B'), (9, 'C')],
+            'TC': [(1, 'D'), (1, 'E'), (1, 'F'),
+                   (2, 'D'), (2, 'E'), (2, 'F'),
+                   (3, 'D'), (3, 'E'), (3, 'F')],
+            'CC': [(4, 'D'), (4, 'E'), (4, 'F'),
+                   (5, 'D'), (5, 'E'), (5, 'F'),
+                   (6, 'D'), (6, 'E'), (6, 'F')],
             'BC': [(7, 'D'), (7, 'E'), (7, 'F'),
                    (8, 'D'), (8, 'E'), (8, 'F'),
                    (9, 'D'), (9, 'E'), (9, 'F')],
+            'TR': [(1, 'G'), (1, 'H'), (1, 'I'),
+                   (2, 'G'), (2, 'H'), (2, 'I'),
+                   (3, 'G'), (3, 'H'), (3, 'I')],
+            'CR': [(4, 'G'), (4, 'H'), (4, 'I'),
+                   (5, 'G'), (5, 'H'), (5, 'I'),
+                   (6, 'G'), (6, 'H'), (6, 'I')],
             'BR': [(7, 'G'), (7, 'H'), (7, 'I'),
                    (8, 'G'), (8, 'H'), (8, 'I'),
                    (9, 'G'), (9, 'H'), (9, 'I')]
@@ -64,7 +64,7 @@ class Sudoku:
 
         }
 
-        self.fill_stack = []
+        self.fill_stack = {}
 
         self.unfilled = []
 
@@ -78,7 +78,6 @@ class Sudoku:
         for cord in cords:
             self.grid_key[cord] = 0
             self.unfilled.append(cord)
-
 
     def mark_gen(self):  # Generates pencil marks of possible values for each space
         col_keys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
@@ -110,103 +109,43 @@ class Sudoku:
                 continue
         return scrubbed
 
-
     def remark(self, x, y, switches, val):  # Returns marks to True for conflicting value in backtrack
         for xy in switches:
             self.marks[xy][val] = True
         self.marks[(x, y)][val] = True
 
+    def rotate(self, num, nums):
+        while nums[0] != num:
+            nums.append(nums.pop(0))
+        return nums
 
-    def backtrack(self, error=None):  # Called in the find_error function when a blank space has no possible values in fill_space
-        space_switches = self.fill_stack.pop()
-        last_space = space_switches[0]
-        switches = space_switches[1]
-        val = self.grid_key[last_space]
-
-        self.unfilled.append(last_space)
-        self.remark(*last_space, switches, val)
-        #self.grid_key[last_space] = 0
-
-        if val == error or error is None:
-            return last_space
-        elif val == 0:
-            self.backtrack()
-        else:
-            self.backtrack(error)
-
-
-
-
-
-
-    def find_error(self, x, y):  # Finds conflicting values at space error discovered
-        seen_values = set()
-        seen_spaces = set()
-
-        for r in self.rows[x]:
-            if self.grid_key[r] in seen_values:
-                return self.backtrack(self.grid_key[r])
-            if self.grid_key[r] > 0:
-                seen_values.add(self.grid_key[r])
-                seen_spaces.add(r)
-
-        for c in self.columns[y]:
-            if c in seen_spaces:
-                continue
-            if self.grid_key[c] in seen_values:
-                return self.backtrack(self.grid_key[c])
-            if self.grid_key[c] > 0:
-                seen_values.add(self.grid_key[c])
-                seen_spaces.add(c)
+    def fill_grid(self):  # Fills spaces one by one until grid is full
+        nums = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        start = random.choice(nums)
+        nums = self.rotate(start, nums)
 
         for box in self.boxes:
-            if (x, y) in self.boxes[box]:
-                for b in self.boxes[box]:
-                    if b in seen_spaces:
-                        continue
-                    if self.grid_key[b] in seen_values:
-                        return self.backtrack(self.grid_key[b])
-                    if self.grid_key[b] > 0:
-                        seen_values.add(self.grid_key[b])
-                        seen_spaces.add(b)
-                break
+            for i, space in enumerate(self.boxes[box]):
+                self.grid_key[space] = nums[i]
+                self.fill_stack[space] = self.mark_scrub(*space)
+                self.unfilled.remove(space)
+            nums = self.rotate(nums[1], nums)
 
-        val = 0
-        while val == 0:
-            val = self.grid_key[(self.backtrack())]
+    def make_blanks(self):
+        for space in self.grid_key:
+            blank = random.choice([True, False])
+            if blank:
+                self.remark(*space, self.fill_stack[space], self.grid_key[space])
+                self.fill_stack.pop(space)
+                self.unfilled.append(space)
+                self.grid_key[space] = 0
 
-
-    def fill_space(self, space=None):  # Fills a single space in the grid, or calls backtrack
-        if space is None:
-            space = self.unfilled.pop()
-        else:
-            self.unfilled.remove(space)
-        choices = [i for i in range(1, 10) if self.marks[space][i]]
-
-        if choices:
-            #print('choosing...')
-            choice = random.choice(choices)
-            self.grid_key[space] = choice
-            self.fill_stack.append((space, self.mark_scrub(*space)))
-
-        else:
-            #print('correcting...')
-            self.find_error(*space)
-
-
-
-
-
-    def fill_grid(self): # Fills spaces one by one until grid is full
-        count = 0
-        while self.unfilled:
-            self.fill_space()
-            count += 1
-            if count == 100000:
-                break
-        print(count)
+    def make_sudoku(self):
+        self.hash_gen()
+        self.mark_gen()
+        self.fill_grid()
+        self.make_blanks()
         self.print_grid()
-
 
     def print_grid(self):  # Prints grid to console in readable format
         for r in range(1, 10):
