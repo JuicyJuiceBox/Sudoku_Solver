@@ -6,4 +6,4 @@ if __name__ == '__main__':
     grid.mark_gen()
     grid.print_grid()
     grid.fill_grid()
-    grid.print_grid()
+
