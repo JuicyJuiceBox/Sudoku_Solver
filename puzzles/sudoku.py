@@ -109,7 +109,7 @@ class Sudoku:
                 continue
         return scrubbed
 
-    def remark(self, x, y, switches, val):  # Returns marks to True for conflicting value in backtrack
+    def remark(self, x, y, switches, val):
         for xy in switches:
             self.marks[xy][val] = True
         self.marks[(x, y)][val] = True
@@ -119,7 +119,7 @@ class Sudoku:
             nums.append(nums.pop(0))
         return nums
 
-    def fill_grid(self):  # Fills spaces one by one until grid is full
+    def fill_grid(self):
         nums = [1, 2, 3, 4, 5, 6, 7, 8, 9]
         start = random.choice(nums)
         nums = self.rotate(start, nums)
@@ -131,9 +131,10 @@ class Sudoku:
                 self.unfilled.remove(space)
             nums = self.rotate(nums[1], nums)
 
-    def make_blanks(self):
+    def make_blanks(self, difficulty):
+        levels = {1: [0.5, 0.5], 2: [0.6, 0.4], 3: [0.7, 0.3]}
         for space in self.grid_key:
-            blank = random.choice([True, False])
+            blank = random.choices([True, False], levels[difficulty], k=1)[0]
             if blank:
                 self.remark(*space, self.fill_stack[space], self.grid_key[space])
                 self.fill_stack.pop(space)
@@ -141,13 +142,22 @@ class Sudoku:
                 self.grid_key[space] = 0
 
     def make_sudoku(self):
+        difficulty = self.select_difficulty()
         self.hash_gen()
         self.mark_gen()
         self.fill_grid()
-        self.make_blanks()
+        self.make_blanks(difficulty)
         self.print_grid()
 
     def print_grid(self):  # Prints grid to console in readable format
         for r in range(1, 10):
             line = [self.grid_key[xy] for xy in self.rows[r]]
             print(line)
+
+    def select_difficulty(self):
+        difficulty = int(input("Please select difficulty 1 - 3\n"))
+        if difficulty in [1, 2, 3]:
+            return difficulty
+        else:
+            print("Please select a number 1-3")
+            return(self.select_difficulty())
